@@ -2,6 +2,7 @@
 
 namespace SimonHamp\Gitamic;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Statamic\Entries\Entry;
 use Statamic\Facades\Stache;
@@ -13,11 +14,11 @@ use Gitonomy\Git\Repository as GitRepository;
 
 class Repository implements Contracts\SiteRepository
 {
-    protected $repo;
+    protected GitRepository $repo;
 
     public function __construct($path)
     {
-        $this->repo = new GitRepository(base_path());
+        $this->repo = new GitRepository($path);
     }
 
     public function getFilesOfType($type): Collection
@@ -56,45 +57,72 @@ class Repository implements Contracts\SiteRepository
             });
     }
 
-    public function stage($files, $args = [])
+    public function stage($files, $args = []): string
     {
         $args = array_merge(array_values($files), array_values($args));
         return $this->repo->run('add', $args);
     }
 
-    public function unstage($files, $args = [])
+    public function unstage($files, $args = []): string
     {
         $args = array_merge(array_values($files), array_values($args), ['--staged']);
         return $this->repo->run('restore', $args);
     }
 
-    public function remove($files, $args = [])
+    public function remove($files, $args = []): string
     {
         $args = array_merge(array_values($files), array_values($args), []);
         return $this->repo->run('rm', $args);
     }
 
-    public function commit($message)
+    public function commit($message): string
     {
+        Cache::forget('gitamic.up_to_date');
         return $this->repo->run('commit', ['-m ' . addslashes($message)]);
     }
 
-    public function push()
+    public function push(): string
     {
+        Cache::forget('gitamic.up_to_date');
         return $this->repo->run('push');
     }
 
     public function upToDate(): bool
     {
-        $this->repo->run('fetch', ['--all']);
+        return Cache::remember('gitamic.up_to_date', 60, function() {
+            $this->fetchAll();
 
-        $status = $this->repo->run('status');
+            $status = $this->status();
 
-        return ! Str::contains($status, 'Your branch is behind')
-            && ! Str::contains($status, 'Your branch is ahead');
+            return ! Str::contains($status, 'Your branch is behind')
+                && ! Str::contains($status, 'Your branch is ahead');
+        });
     }
 
-    protected function getFileDetails($relative_path, $id): Collection
+    public function ahead(): bool
+    {
+        return Str::contains($this->status(), 'Your branch is ahead');
+    }
+
+    public function behind(): bool
+    {
+        return Str::contains($this->status(), 'Your branch is behind');
+    }
+
+    public function status(): string
+    {
+        $status = $this->repo->run('status');
+        $status_array = preg_split("/((\r?\n)|(\r\n?))/", $status);
+
+        return implode("\r\n", array_slice($status_array, 0, 2));
+    }
+
+    protected function fetchAll(): void
+    {
+        $this->repo->run('fetch', ['--all']);
+    }
+
+    protected function getFileDetails(string $relative_path, $id): Collection
     {
         $path = base_path($relative_path);
         $file = File::name($path);
