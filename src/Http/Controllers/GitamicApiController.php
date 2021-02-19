@@ -40,9 +40,7 @@ class GitamicApiController
             return $file->get('path');
         });
 
-        $git->$action($files->all());
-
-        return response()->json(['action' => 'getStatus']);
+        return response()->json(['action' => $git->{$action}($files->all())]);
     }
 
     public function commit(SiteRepository $git)
