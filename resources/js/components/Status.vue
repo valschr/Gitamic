@@ -53,6 +53,15 @@
                 <h2 class="mb-2">Unstaged</h2>
                 <gitamic-unstaged ref="unstaged" :data="unstaged"></gitamic-unstaged>
             </div>
+
+            <div class="my-4 text-sm text-center text-grey-60 tracking-wide" style="font-variant: all-small-caps">
+                Something not working?
+                <a href="https://github.com/simonhamp/Gitamic/issues/new/choose" target="_blank" class="text-grey-70">
+                    Get help
+                </a>
+                <br>
+                Gitamic &copy; Simon Hamp
+            </div>
         </div>
     </div>
 </template>
