@@ -9,6 +9,7 @@ Route::get('gitamic/status', function () {
 Route::group(['prefix' => 'gitamic/api'], function () {
     Route::get('status', 'GitamicApiController@status');
     Route::post('commit', 'GitamicApiController@commit');
+    Route::post('push', 'GitamicApiController@push');
     Route::get('actions/{type}', 'GitamicApiController@actions');
     Route::post('actions/{type}', 'GitamicApiController@doAction');
 });

@@ -52,6 +52,13 @@ class GitamicApiController
         return response()->json(['result' => $result]);
     }
 
+    public function push(SiteRepository $git)
+    {
+        $result = $git->push();
+
+        return response()->json(['result' => $result]);
+    }
+
     protected function getUnstagedActions()
     {
         return [
