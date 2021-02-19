@@ -39,16 +39,20 @@
         </div>
 
         <div v-if="loaded">
-            <div class="flex my-3">
-                <h2>Staged</h2>
+            <div class="my-4">
+                <h2 class="mb-2">Status</h2>
+                <pre>{{ status }}</pre>
             </div>
-            <gitamic-staged ref="staged" :data="staged"></gitamic-staged>
 
-            <div class="flex my-3">
-                <h2>Unstaged</h2>
+            <div class="my-4">
+                <h2 class="mb-2">Staged</h2>
+                <gitamic-staged ref="staged" :data="staged"></gitamic-staged>
             </div>
-            <gitamic-unstaged ref="unstaged" :data="unstaged"></gitamic-unstaged>
 
+            <div class="my-4">
+                <h2 class="mb-2">Unstaged</h2>
+                <gitamic-unstaged ref="unstaged" :data="unstaged"></gitamic-unstaged>
+            </div>
         </div>
     </div>
 </template>
@@ -69,6 +73,7 @@
                 meta: {},
                 commit_message: '',
                 up_to_date: true,
+                status: '',
             }
         },
 
@@ -98,7 +103,11 @@
         },
 
         methods: {
-            async getStatus() {
+            async getStatus(withLoader) {
+                if (withLoader) {
+                    this.loaded = false;
+                }
+
                 let response = await this.$axios.get(cp_url(`gitamic/api/status`));
 
                 this.loaded = true;
@@ -106,6 +115,7 @@
                 this.staged = response.data.staged;
                 this.meta = response.data.meta;
                 this.up_to_date = response.data.up_to_date;
+                this.status = response.data.status;
             },
 
             confirmCommit() {
