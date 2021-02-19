@@ -4,6 +4,6 @@
 
 @section('content')
 
-    <gitamic-status ref="status"></gitamic-status>
+    <gitamic-status ref="status" :data='{{ $data }}'></gitamic-status>
 
 @endsection

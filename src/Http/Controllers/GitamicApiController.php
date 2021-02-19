@@ -12,17 +12,24 @@ class GitamicApiController
         $unstaged = $git->getUnstagedFiles();
         $staged = $git->getStagedFiles();
 
-        $meta = [
-            'unstaged_count' => $unstaged->count(),
-            'staged_count' => $staged->count(),
-        ];
-
-        return response()->json([
+        $data = [
             'unstaged' => $unstaged->all(),
             'staged' => $staged->all(),
-            'meta' => $meta,
+            'meta' => [
+                'unstaged_count' => $unstaged->count(),
+                'staged_count' => $staged->count(),
+            ],
             'up_to_date' => $git->upToDate(),
-        ]);
+            'status' => $git->status(),
+        ];
+
+        if (request()->wantsJson()) {
+            return response()->json($data);
+        }
+
+        $data['loaded'] = true;
+
+        return view('gitamic::status', ['wrapper_class' => 'max-w-full', 'data' => json_encode($data)]);
     }
 
     public function actions($type)

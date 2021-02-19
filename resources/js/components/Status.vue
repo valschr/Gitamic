@@ -57,6 +57,7 @@
     export default {
 
         props: [
+            'data'
         ],
 
         data() {
@@ -85,7 +86,13 @@
         },
 
         created() {
-            this.rows = this.getStatus();
+            for(const [key, value] of Object.entries(this.data)) {
+                this[key] = value;
+            }
+
+            if (! this.loaded) {
+                this.getStatus();
+            }
 
             this.$events.$on('composer-finished', this.getStatus);
         },
