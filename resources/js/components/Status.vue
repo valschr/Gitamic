@@ -18,7 +18,7 @@
 
         <div class="flex mb-3">
             <h1 class="flex-1">{{ __('Gitamic') }}</h1>
-            <button class="btn" @click.prevent="getStatus">{{ __('Refresh') }}</button>
+            <button class="btn" @click.prevent="getStatus(true)">{{ __('Refresh') }}</button>
             <button
                 v-if="hasStagedChanges"
                 class="ml-2 btn-primary flex items-center"
