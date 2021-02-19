@@ -62,7 +62,7 @@
 
         methods: {
             beginAction() {
-                this.rows = this.rows.filter(row => {
+                this.rows = Object.values(this.rows).filter(row => {
                     return ! Object.values(this.$refs.list.sharedState.selections).includes(row.id);
                 });
             },
