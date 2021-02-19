@@ -64,9 +64,9 @@
                 });
             },
 
-            refresh() {
+            async refresh() {
+                await this.$root.$refs.status.getStatus();
                 this.$refs.list.clearSelections();
-                this.$root.$refs.status.getStatus();
             },
 
             unstage(file) {
