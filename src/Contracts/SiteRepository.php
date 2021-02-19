@@ -16,15 +16,21 @@ interface SiteRepository
 
     public function getPendingFiles(): Collection;
 
-    public function stage($files, $args = []);
+    public function stage($files, $args = []): string;
 
-    public function unstage($files, $args = []);
+    public function unstage($files, $args = []): string;
 
-    public function remove($files, $args = []);
+    public function remove($files, $args = []): string;
 
-    public function commit($message);
+    public function commit($message): string;
 
-    public function push();
+    public function push(): string;
 
     public function upToDate(): bool;
+
+    public function ahead(): bool;
+
+    public function behind(): bool;
+
+    public function status(): string;
 }
