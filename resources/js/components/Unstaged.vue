@@ -2,7 +2,7 @@
     <div>
         <data-list ref="list" :visibleColumns="columns" :columns="columns" :rows="rows" sortColumn="path" sortDirection="asc">
             <div class="card p-0 relative" slot-scope="{ filteredRows: rows }">
-                <data-list-bulk-actions url="api/actions/unstaged" @completed="refresh" />
+                <data-list-bulk-actions url="api/actions/unstaged" @started="beginAction" @completed="refresh" />
 
                 <data-list-table :rows="rows" allow-bulk-actions="true">
                     <template slot="cell-relative_path" slot-scope="{ row: file }">
@@ -61,15 +61,23 @@
         },
 
         methods: {
+            beginAction() {
+                this.rows = this.rows.filter(row => {
+                    return ! Object.values(this.$refs.list.sharedState.selections).includes(row.id);
+                });
+            },
+
             refresh() {
                 this.$refs.list.clearSelections();
                 this.$root.$refs.status.getStatus();
             },
+
             stage(file) {
                 let payload = {
                     selections: [file.id],
                     action: 'stage',
                 };
+                Vue.delete(this.rows, file.id);
                 this.$axios.post('api/actions/unstaged', payload, { responseType: 'blob' }).then(response => {
                     this.refresh();
                 });
