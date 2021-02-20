@@ -125,11 +125,12 @@ class Repository implements Contracts\SiteRepository
     protected function getFileDetails(string $relative_path, $id): Collection
     {
         $path = base_path($relative_path);
+        $is_deleted = ! File::exists($path);
         $file = File::name($path);
         $extension = '.' . File::extension($path);
-        $last_modified = Carbon::createFromTimestamp(File::lastModified($path))->format('Y-m-d H:i:s');
-        $type = File::type($path);
-        $size = File::size($path);
+        $last_modified = $is_deleted ? 'unknown' : Carbon::createFromTimestamp(File::lastModified($path))->format('Y-m-d H:i:s');
+        $type = $is_deleted ? 'unknown' : File::type($path);
+        $size = $is_deleted ? 'unknown' : File::size($path);
         $is_content = empty($file) ? false : Str::startsWith($path, app('filesystems.paths.content'));
         $entry_path = Str::replaceFirst('content' . DIRECTORY_SEPARATOR, '', $relative_path);
 
@@ -156,7 +157,8 @@ class Repository implements Contracts\SiteRepository
         }
 
         return collect(compact(
-            'id', 'relative_path', 'path', 'last_modified', 'type', 'size', 'is_content', 'is_entry', 'edit_url'
+            'id', 'relative_path', 'path', 'last_modified', 'type', 'size', 'is_content', 'is_entry', 'edit_url',
+            'is_deleted'
         ));
     }
 }

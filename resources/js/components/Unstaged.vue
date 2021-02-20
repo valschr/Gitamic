@@ -6,7 +6,14 @@
 
                 <data-list-table :rows="rows" allow-bulk-actions="true">
                     <template slot="cell-relative_path" slot-scope="{ row: file }">
-                        <a :href="file.edit_url" v-if="file.is_content">{{ file.relative_path }}</a>
+                        <a v-if="file.is_content && ! file.is_deleted"
+                           :href="file.edit_url"
+                        >
+                            {{ file.relative_path }}
+                        </a>
+                        <span v-else-if="file.is_deleted" class="line-through">
+                            {{ file.relative_path }}
+                        </span>
                     </template>
                     <template slot="actions" slot-scope="{ row: file, index }">
                         <dropdown-list>
