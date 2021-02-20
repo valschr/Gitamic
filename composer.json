@@ -30,7 +30,7 @@
     "prefer-stable": true,
     "require": {
         "gitonomy/gitlib": "^1.2",
-        "illuminate/support": "^7.14",
+        "illuminate/support": "^7.0 || ^8.0",
         "statamic/cms": "^3.0"
     },
     "require-dev": {
