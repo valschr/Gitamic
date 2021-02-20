@@ -2,13 +2,16 @@
 
 namespace SimonHamp\Gitamic;
 
-use Illuminate\Support\Facades\Cache;
+use Error;
+use Exception;
+use ErrorException;
 use Illuminate\Support\Str;
 use Statamic\Entries\Entry;
 use Statamic\Facades\Stache;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Cache;
 use Gitonomy\Git\Diff\File as GitFile;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Repository as GitRepository;
@@ -181,7 +184,7 @@ class Repository implements Contracts\SiteRepository
             $entry = Stache::store("entries::$collection")->makeItemFromFile($path, File::get($path));
             $is_entry = true;
             $edit_url = $entry->editUrl();
-        } catch (\Exception | \ErrorException | \Error $e) {
+        } catch (Exception | ErrorException | Error $e) {
             // Something went wrong, so it's not an entry
         }
 
