@@ -20,6 +20,8 @@ interface SiteRepository
 
     public function unstage($files, $args = []): string;
 
+    public function discard($files): string;
+
     public function remove($files, $args = []): string;
 
     public function commit($message): string;

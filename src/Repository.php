@@ -10,6 +10,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Gitonomy\Git\Diff\File as GitFile;
+use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Repository as GitRepository;
 
 class Repository implements Contracts\SiteRepository
@@ -67,6 +68,34 @@ class Repository implements Contracts\SiteRepository
     {
         $args = array_merge(array_values($files), array_values($args), ['--staged']);
         return $this->repo->run('restore', $args);
+    }
+
+    public function discard($files): string
+    {
+        // First, delete any files that aren't in the git index
+        foreach ($files as $key => $file) {
+            try {
+                $result = $this->repo->run('ls-files', ['--error-unmatch', $file]);
+            } catch (ProcessException $e) {
+                foreach (preg_split("/((\r?\n)|(\r\n?))/", $e->getMessage()) as $result) {
+                    if (Str::startsWith($result, 'error:')) {
+                        break;
+                    }
+                }
+            }
+
+            // XXX: This is gonna be real slow for large sets
+            $in_index = ! Str::startsWith($result, 'error:');
+            if ($in_index) {
+                continue;
+            }
+
+            unlink($file);
+            unset($files[$key]);
+        }
+
+        // Second, restore the state of changed files
+        return $this->repo->run('checkout', $files);
     }
 
     public function remove($files, $args = []): string

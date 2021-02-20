@@ -70,7 +70,16 @@ class GitamicApiController
             [
                 'title' => 'Stage',
                 'handle' => 'stage',
-                'buttonText' => 'Stage',
+                'fields' => ['path'],
+            ],
+            [
+                'title' => 'Discard',
+                'handle' => 'discard',
+                'confirmationText' => 'Are you sure want to discard changes to the selected files?',
+                'warningText' => 'You cannot undo this!',
+                'buttonText' => 'Yes, discard',
+                'dangerous' => true,
+                'confirm' => true,
                 'fields' => ['path'],
             ],
         ];
