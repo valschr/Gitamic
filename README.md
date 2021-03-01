@@ -8,17 +8,20 @@ to your repo?
 more complex sites that rely on live-publishing changes from your Statamic CP back to your git repository.
 
 ## Features
-- See changes to files (a.k.a. your 'working tree')
+- View the 'working tree'
 - Stage and unstage changes
 - Discard unstaged changes
 - Commit staged changes
-- Push changes
+- Push commits
 
 And even more features are coming as Gitamic is under active development!
 
-**COMING SOON**
+**Pro version COMING SOON** with...
 
-- Pro version with even more powerful features!
+- Diffs
+- Commit history
+- Stashing
+- Restoring
 
 ## Installation and Setup
 ### Statamic CP
@@ -41,13 +44,43 @@ Once Composer has finished downloading the necessary dependencies, you'll need t
     ],
 ```
 
-Gitamic is a premium add-on, so a license is required for all versions. You may download and install it for free to
-trial it, but you must purchase a license in order to use this add-on in production.
-
-You can purchase a license from the [Statamic Marketplace](https://statamic.com/addons/simonhamp/gitamic).
-
 Once Gitamic is installed, just refresh your CP and you can use it immediately. It relies on wherever your site is
 running to contain a git repository.
+
+#### Setting the Git committer
+
+By default, Gitamic uses the following details for the git committer name and email address:
+
+- name: `Gitamic`
+- email: `gitamic@example.com`
+
+You can easily override these values in your `.env` by adding the following keys, e.g.:
+
+```dotenv
+GITAMIC_GIT_USER_NAME="Simon Hamp"
+GITAMIC_GIT_USER_EMAIL="simon.hamp@me.com"
+```
+
+> When using Statamic Pro's Git Integration, if the above keys aren't defined, Gitamic will fallback on
+> `STATAMIC_GIT_USER_NAME` and `STATAMIC_GIT_USER_EMAIL`, if those _are_ defined.
+
+If you'd like to use the details of the logged-in user as the committer, you will need to enable the
+`gitamic.use_authenticated` option in `config/gitamic.php`:
+
+```php
+return [
+
+    'use_authenticated' => true,
+
+    'user' => ...
+];
+```
+
+You will need to publish this config file to your site in order to make that change:
+
+```bash
+php artisan vendor:publish --provider=SimonHamp\\Gitamic\\ServiceProvider
+```
 
 #### Statamic Pro
 Gitamic **does not** require Statamic Pro, nor [Statamic's Git Integration](https://statamic.dev/git-integration) to be
@@ -63,9 +96,32 @@ To do this you can set the following key in your `.env` file:
 STATAMIC_GIT_AUTOMATIC=false
 ```
 
+#### Auto-deployment
+
+If you're using Gitamic on your auto-deployment target, when you `push` it might trigger a redundant deployment back to
+the environment where you've just committed those changes.
+
+In your deployment script, you will need to write a statement that exits the deployment when it detects that Gitamic
+initiated the commit.
+
+For example, if you use [Laravel Forge](https://forge.laravel.com/) and leave the `GITAMIC_GIT_USER_NAME` as `Gitamic`,
+you could add the following to the beginning of your deploy script, which inspects the author of the commit and stops
+the process before it begins:
+
+```bash
+[[ "$FORGE_DEPLOY_AUTHOR" == "Gitamic" ]] && echo "Commit by $FORGE_DEPLOY_AUTHOR" && exit 0
+
+# The rest of your deployment script...
+```
+
+However, the specific approach you should use will depend largely on your setup.
+
 ## Bugs and Feature Requests
 If you experience any problems with Gitamic or would like to make a feature request, please
 [raise an issue](https://github.com/simonhamp/Gitamic/issues) using the appropriate template.
+
+You can also find me (@simonhamp) in the `#3rd-party` channel on the [Statamic Discord](https://statamic.com/discord).
+(Note that I will likely still ask you to fill out a GitHub issue)
 
 ## Security
 If you discover any security related issues, please **do not** raise an issue on GitHub. Email simon.hamp@me.com
@@ -74,4 +130,9 @@ instead.
 Please note that I will not respond to feature requests or bug reports at this email address.
 
 ## License
+Gitamic is a premium add-on, so a license is required for all versions. You may download and install it for free to
+trial it, but you must purchase a license code in order to use this add-on in production.
+
+You can purchase a license code from the [Statamic Marketplace](https://statamic.com/addons/simonhamp/gitamic).
+
 See [LICENSE](https://github.com/simonhamp/Gitamic/blob/main/LICENSE.md)
