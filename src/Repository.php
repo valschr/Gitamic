@@ -20,9 +20,9 @@ class Repository implements Contracts\SiteRepository
 {
     protected GitRepository $repo;
 
-    public function __construct($path)
+    public function __construct(GitRepository $repo)
     {
-        $this->repo = new GitRepository($path);
+        $this->repo = $repo;
     }
 
     public function getFilesOfType($type): Collection
@@ -110,6 +110,7 @@ class Repository implements Contracts\SiteRepository
     public function commit($message): string
     {
         Cache::forget('gitamic.up_to_date');
+
         return $this->repo->run('commit', ['-m ' . addslashes($message)]);
     }
 

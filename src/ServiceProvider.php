@@ -2,9 +2,11 @@
 
 namespace SimonHamp\Gitamic;
 
+use Statamic\Facades\User;
 use Statamic\Facades\CP\Nav;
-use SimonHamp\Gitamic\Contracts\SiteRepository;
 use Statamic\Providers\AddonServiceProvider;
+use Gitonomy\Git\Repository as GitRepository;
+use SimonHamp\Gitamic\Contracts\SiteRepository;
 
 class ServiceProvider extends AddonServiceProvider
 {
@@ -19,7 +21,23 @@ class ServiceProvider extends AddonServiceProvider
     public function register()
     {
         app()->singleton(SiteRepository::class, function () {
-            return new Repository(base_path());
+            return new Repository(app(GitRepository::class));
+        });
+
+        app()->singleton(GitRepository::class, function () {
+            $user = User::current();
+
+            $authenticated = config('gitamic.use_authenticated');
+
+            $name = $authenticated ? $user->name() : config('gitamic.user.name');
+            $email = $authenticated ? $user->email() : config('gitamic.user.email');
+
+            return new GitRepository(base_path(), [
+                'environment_variables' => [
+                    'GIT_COMMITTER_NAME' => $name,
+                    'GIT_COMMITTER_EMAIL' => $email,
+                ],
+            ]);
         });
     }
 
