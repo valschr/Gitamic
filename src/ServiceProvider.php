@@ -34,6 +34,8 @@ class ServiceProvider extends AddonServiceProvider
 
             return new GitRepository(base_path(), [
                 'environment_variables' => [
+                    'GIT_AUTHOR_NAME' => $name,
+                    'GIT_AUTHOR_EMAIL' => $email,
                     'GIT_COMMITTER_NAME' => $name,
                     'GIT_COMMITTER_EMAIL' => $email,
                 ],
