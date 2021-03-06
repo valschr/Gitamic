@@ -15,7 +15,7 @@ so, subject to the following conditions:
    eligibility.
 
 4. **Not for reuse.** The Software and the proprietary code therein, not limited to but including  designs, components,
-   classes, and patterns, may not be resused in other projects without the express written consent of Simon Hamp.
+   classes, and patterns, may not be reused in other projects without the express written consent of Simon Hamp.
 
 5. **Follow the law.** All use of the Software shall not violate any applicable law or regulation, nor infringe the
    rights of any other person or entity.
