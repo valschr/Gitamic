@@ -18,7 +18,9 @@
 
         <div class="flex mb-3">
             <h1 class="flex-1">{{ __('Gitamic') }}</h1>
+
             <button class="btn" @click.prevent="getStatus(true)">{{ __('Refresh') }}</button>
+
             <button
                 v-if="hasStagedChanges"
                 class="ml-2 btn-primary flex items-center"
@@ -27,10 +29,19 @@
             </button>
 
             <button
-                v-if="! isUpToDate"
-                class="ml-2 btn-primary flex items-center"
+                v-if="canPush"
+                class="ml-2 flex btn items-center"
+                :class="{ 'btn-primary': ! hasStagedChanges }"
                 @click="push">
                 <span>{{ __('Push') }}</span>
+            </button>
+
+            <button
+                v-if="canPull"
+                class="ml-2 flex btn items-center"
+                :class="{ 'btn-primary': ! hasStagedChanges }"
+                @click="pull">
+                <span>{{ __('Pull') }}</span>
             </button>
         </div>
 
@@ -54,13 +65,17 @@
                 <gitamic-unstaged ref="unstaged" :data="unstaged"></gitamic-unstaged>
             </div>
 
+            <div class="flex justify-center text-center mt-4">
+                <div class="bg-white rounded-full px-3 py-1 shadow-sm text-sm text-grey-70">
+                    Something not working?
+                    <a href="https://github.com/simonhamp/Gitamic/issues/new/choose" target="_blank" class="text-grey-70">
+                        Get help
+                    </a>
+                </div>
+            </div>
+
             <div class="my-4 text-sm text-center text-grey-60 tracking-wide" style="font-variant: all-small-caps">
-                Something not working?
-                <a href="https://github.com/simonhamp/Gitamic/issues/new/choose" target="_blank" class="text-grey-70">
-                    Get help
-                </a>
-                <br>
-                Gitamic &copy; Simon Hamp
+                Gitamic &copy; <a href="https://simonhamp.me/" target="_blank">Simon Hamp</a>
             </div>
         </div>
     </div>
@@ -82,6 +97,9 @@
                 meta: {},
                 commit_message: '',
                 up_to_date: true,
+                ahead: false,
+                behind: false,
+                diverged: false,
                 status: '',
             }
         },
@@ -91,21 +109,23 @@
                 return this.staged.length > 0;
             },
 
-            isUpToDate() {
-                return this.up_to_date;
-            }
+            canPull() {
+                return this.behind || this.diverged;
+            },
+
+            canPush() {
+                return this.ahead && ! this.diverged;
+            },
         },
 
         created() {
-            for(const [key, value] of Object.entries(this.data)) {
+            for(const [key, value] of Object.entries(this.$props.data)) {
                 this[key] = value;
             }
 
             if (! this.loaded) {
                 this.getStatus();
             }
-
-            this.$events.$on('composer-finished', this.getStatus);
         },
 
         methods: {
@@ -121,6 +141,9 @@
                 this.staged = response.data.staged;
                 this.meta = response.data.meta;
                 this.up_to_date = response.data.up_to_date;
+                this.ahead = response.data.ahead;
+                this.behind = response.data.behind;
+                this.diverged = response.data.diverged;
                 this.status = response.data.status;
             },
 
@@ -143,9 +166,19 @@
             },
 
             async push() {
+                this.loaded = false;
                 await this.$axios.post(cp_url(`gitamic/api/push`));
 
                 await this.getStatus();
+                this.loaded = true;
+            },
+
+            async pull() {
+                this.loaded = false;
+                await this.$axios.post(cp_url(`gitamic/api/pull`));
+
+                await this.getStatus();
+                this.loaded = true;
             },
         }
     }

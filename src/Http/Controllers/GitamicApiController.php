@@ -20,6 +20,9 @@ class GitamicApiController
                 'staged_count' => $staged->count(),
             ],
             'up_to_date' => $git->upToDate(),
+            'ahead' => $git->ahead(),
+            'behind' => $git->behind(),
+            'diverged' => $git->diverged(),
             'status' => $git->status(),
         ];
 
@@ -60,6 +63,13 @@ class GitamicApiController
     public function push(SiteRepository $git)
     {
         $result = $git->push();
+
+        return response()->json(['result' => $result]);
+    }
+
+    public function pull(SiteRepository $git)
+    {
+        $result = $git->pull();
 
         return response()->json(['result' => $result]);
     }

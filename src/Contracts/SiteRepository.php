@@ -28,11 +28,15 @@ interface SiteRepository
 
     public function push(): string;
 
+    public function pull(): string;
+
     public function upToDate(): bool;
 
     public function ahead(): bool;
 
     public function behind(): bool;
+
+    public function diverged(): bool;
 
     public function status(): string;
 }

@@ -12,7 +12,7 @@ more complex sites that rely on live-publishing changes from your Statamic CP ba
 - Stage and unstage changes
 - Discard unstaged changes
 - Commit staged changes
-- Push commits
+- Push to & pull from the remote branch
 
 And even more features are coming as Gitamic is under active development!
 
@@ -47,7 +47,7 @@ Once Composer has finished downloading the necessary dependencies, you'll need t
 Once Gitamic is installed, just refresh your CP and you can use it immediately. It relies on wherever your site is
 running to contain a git repository.
 
-#### Setting the Git committer
+#### Setting the git committer
 
 By default, Gitamic uses the following details for the git committer name and email address:
 
@@ -69,7 +69,6 @@ If you'd like to use the details of the logged-in user as the committer, you wil
 
 ```php
 return [
-
     'use_authenticated' => true,
 
     'user' => ...

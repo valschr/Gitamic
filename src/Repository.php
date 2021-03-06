@@ -20,6 +20,10 @@ class Repository implements Contracts\SiteRepository
 {
     protected GitRepository $repo;
 
+    const STATUS_BEHIND = 'Your branch is behind';
+    const STATUS_AHEAD = 'Your branch is ahead';
+    const STATUS_DIVERGED = 'have diverged';
+
     public function __construct(GitRepository $repo)
     {
         $this->repo = $repo;
@@ -64,12 +68,14 @@ class Repository implements Contracts\SiteRepository
     public function stage($files, $args = []): string
     {
         $args = array_merge(array_values($files), array_values($args));
+
         return $this->repo->run('add', $args);
     }
 
     public function unstage($files, $args = []): string
     {
         $args = array_merge(array_values($files), array_values($args), ['--staged']);
+
         return $this->repo->run('restore', $args);
     }
 
@@ -104,50 +110,65 @@ class Repository implements Contracts\SiteRepository
     public function remove($files, $args = []): string
     {
         $args = array_merge(array_values($files), array_values($args), []);
+
         return $this->repo->run('rm', $args);
     }
 
     public function commit($message): string
     {
-        Cache::forget('gitamic.up_to_date');
+        Cache::forget('gitamic.status');
 
         return $this->repo->run('commit', ['-m ' . addslashes($message)]);
     }
 
     public function push(): string
     {
-        Cache::forget('gitamic.up_to_date');
+        Cache::forget('gitamic.status');
+
         return $this->repo->run('push');
+    }
+
+    public function pull(): string
+    {
+        Cache::forget('gitamic.status');
+
+        return $this->repo->run('pull');
     }
 
     public function upToDate(): bool
     {
-        return Cache::remember('gitamic.up_to_date', 60, function() {
-            $this->fetchAll();
+        $status = $this->status();
 
-            $status = $this->status();
-
-            return ! Str::contains($status, 'Your branch is behind')
-                && ! Str::contains($status, 'Your branch is ahead');
-        });
+        return ! Str::contains($status, self::STATUS_BEHIND)
+            && ! Str::contains($status, self::STATUS_AHEAD);
     }
 
     public function ahead(): bool
     {
-        return Str::contains($this->status(), 'Your branch is ahead');
+        return Str::contains($this->status(), self::STATUS_AHEAD);
     }
 
     public function behind(): bool
     {
-        return Str::contains($this->status(), 'Your branch is behind');
+        return Str::contains($this->status(), self::STATUS_BEHIND);
+    }
+
+    public function diverged(): bool
+    {
+        return Str::contains($this->status(), self::STATUS_DIVERGED);
     }
 
     public function status(): string
     {
-        $status = $this->repo->run('status');
-        $status_array = preg_split("/((\r?\n)|(\r\n?))/", $status);
+        return Cache::remember('gitamic.status', 60, function() {
+            $this->fetchAll();
 
-        return implode("\r\n", array_slice($status_array, 0, 2));
+            $status = $this->repo->run('status');
+
+            $status_array = preg_split("/((\r?\n)|(\r\n?))/", $status);
+
+            return implode("\r\n", array_slice($status_array, 0, 2));
+        });
     }
 
     protected function fetchAll(): void
