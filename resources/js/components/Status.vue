@@ -68,7 +68,7 @@
             <div class="flex justify-center text-center mt-4">
                 <div class="bg-white rounded-full px-3 py-1 shadow-sm text-sm text-grey-70">
                     Something not working?
-                    <a href="https://github.com/simonhamp/Gitamic/issues/new/choose" target="_blank" class="text-grey-70">
+                    <a href="https://github.com/simonhamp/Gitamic/issues/new/choose" target="_blank" class="text-blue hover:text-blue-dark">
                         Get help
                     </a>
                 </div>
