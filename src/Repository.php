@@ -6,6 +6,7 @@ use Error;
 use Exception;
 use ErrorException;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Statamic\Entries\Entry;
 use Statamic\Facades\Stache;
 use Illuminate\Support\Carbon;
@@ -53,7 +54,7 @@ class Repository implements Contracts\SiteRepository
     {
         return collect($this->repo->getWorkingCopy()->getDiffStaged()->getFiles())
             ->transform(function (GitFile $file, $id) {
-                return $this->getFileDetails($file->getName(), $id);
+                return $this->getFileDetails($file, $id);
             });
     }
 
@@ -61,7 +62,7 @@ class Repository implements Contracts\SiteRepository
     {
         return collect($this->repo->getWorkingCopy()->getDiffPending()->getFiles())
             ->transform(function (GitFile $file, $id) {
-                return $this->getFileDetails($file->getName(), $id);
+                return $this->getFileDetails($file, $id);
             });
     }
 
@@ -176,8 +177,37 @@ class Repository implements Contracts\SiteRepository
         $this->repo->run('fetch', ['--all']);
     }
 
-    protected function getFileDetails(string $relative_path, $id): Collection
+    protected function determineChangeType(GitFile $file): string
     {
+        // XXX: Would this be better as a match (PHP8)?
+        switch (true) {
+            case $file->isChangeMode():
+                return 'F';
+            case $file->isCreation():
+                return 'A';
+            case $file->isDeletion():
+                return 'D';
+            case $file->isModification():
+                return 'M';
+            case $file->isRename():
+                return 'R';
+        }
+
+        return '-';
+    }
+
+    protected function getFileDetails($file, $id): Collection
+    {
+        $change = 'A';
+        $relative_path = $file;
+
+        if ($file instanceof GitFile) {
+            $relative_path = $file->getName();
+            $change = $this->determineChangeType($file);
+        } else if (! is_string($file)) {
+            throw new InvalidArgumentException('$file must a string or an instance of ' . GitFile::class);
+        }
+
         $path = base_path($relative_path);
         $is_deleted = ! File::exists($path);
         $file = File::name($path);
@@ -185,7 +215,7 @@ class Repository implements Contracts\SiteRepository
         $last_modified = $is_deleted ? 'unknown' : Carbon::createFromTimestamp(File::lastModified($path))->format('Y-m-d H:i:s');
         $type = $is_deleted ? 'unknown' : File::type($path);
         $size = $is_deleted ? 'unknown' : File::size($path);
-        $is_content = empty($file) ? false : Str::startsWith($path, app('filesystems.paths.content'));
+        $is_content = ! empty($file) && Str::startsWith($path, app('filesystems.paths.content'));
         $entry_path = Str::replaceFirst('content' . DIRECTORY_SEPARATOR, '', $relative_path);
 
         // Replace taxonomy term path with the real deal
@@ -203,7 +233,7 @@ class Repository implements Contracts\SiteRepository
         $is_entry = false;
         try {
             /** @var Entry $entry */
-            $entry = Stache::store("entries::$collection")->makeItemFromFile($path, File::get($path));
+            $entry = Stache::store("entries::{$collection}")->makeItemFromFile($path, File::get($path));
             $is_entry = true;
             $edit_url = $entry->editUrl();
         } catch (Exception | ErrorException | Error $e) {
@@ -212,7 +242,7 @@ class Repository implements Contracts\SiteRepository
 
         return collect(compact(
             'id', 'relative_path', 'path', 'last_modified', 'type', 'size', 'is_content', 'is_entry', 'edit_url',
-            'is_deleted'
+            'is_deleted', 'change',
         ));
     }
 }

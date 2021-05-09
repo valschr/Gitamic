@@ -1,0 +1,34 @@
+.diff-old {
+    background-color: rgba(255,120,120,0.8);
+    color: black;
+}
+
+.diff-new {
+    background-color: rgba(100,255,100,0.6);
+    color: black;
+}
+
+.change-label {
+    color: black;
+    display: inline-block;
+    padding: 2px 6px;
+    text-align: center;
+    border-radius: 2px;
+    font-size: 11px;
+}
+
+.change-D {
+    background-color: rgba(255,120,120,0.8);
+ }
+
+.change-A {
+    background-color: rgba(100,255,100,0.6);
+}
+
+.change-M, .change-R {
+    background-color: rgba(50,150,255,0.6);
+}
+
+.change-F {
+    background-color: rgba(100,100,100,0.6);
+}

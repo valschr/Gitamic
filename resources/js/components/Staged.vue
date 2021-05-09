@@ -5,6 +5,9 @@
                 <data-list-bulk-actions url="api/actions/staged" @started="beginAction" @completed="refresh" />
 
                 <data-list-table :rows="rows" allow-bulk-actions="true">
+                    <template slot="cell-change" slot-scope="{ row: file }">
+                        <span :class="'font-mono change-label change-' + file.change">{{ file.change }}</span>
+                    </template>
                     <template slot="cell-relative_path" slot-scope="{ row: file }">
                         <a v-if="file.is_content && ! file.is_deleted"
                            :href="file.edit_url"
@@ -39,6 +42,10 @@
             return {
                 rows: this.data,
                 columns: [
+                    {
+                        'field': 'change',
+                        'label': '',
+                    },
                     {
                         'field': 'relative_path',
                         'label': 'Path',
