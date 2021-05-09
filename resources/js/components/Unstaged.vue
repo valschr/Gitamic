@@ -76,8 +76,22 @@
 
         methods: {
             beginAction() {
-                this.rows = Object.values(this.rows).filter(row => {
-                    return ! Object.values(this.$refs.list.sharedState.selections).includes(row.id);
+                let rows = Object.values(this.rows);
+
+                const selections = Object.values(this.$refs.list.sharedState.selections);
+
+                const selected = rows.filter(row => {
+                    return selections.includes(row.id);
+                });
+
+                this.rows = rows.filter(row => {
+                    return ! selections.includes(row.id);
+                });
+
+                console.log(Object.keys(selected));
+
+                Object.values(selected).forEach(row => {
+                    this.$root.$refs.status.staged.push(row);
                 });
             },
 

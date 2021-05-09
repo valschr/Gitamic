@@ -73,8 +73,21 @@
 
         methods: {
             beginAction() {
+                const selections = Object.values(this.$refs.list.sharedState.selections);
+
+                const selected = this.rows.filter(row => {
+                    return selections.includes(row.id);
+                });
+
                 this.rows = this.rows.filter(row => {
-                    return ! Object.values(this.$refs.list.sharedState.selections).includes(row.id);
+                    return ! selections.includes(row.id);
+                });
+
+                Object.keys(selected).forEach(key => {
+                    let row = selected[key],
+                        index = row.relative_path;
+
+                    Vue.set(this.$root.$refs.status.unstaged, index, row);
                 });
             },
 
