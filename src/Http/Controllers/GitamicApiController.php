@@ -3,12 +3,18 @@
 namespace SimonHamp\Gitamic\Http\Controllers;
 
 use Illuminate\Support\Str;
+use Illuminate\Http\JsonResponse;
 use SimonHamp\Gitamic\Contracts\SiteRepository;
 
 class GitamicApiController
 {
     public function status(SiteRepository $git)
     {
+        if ($git->repo()->isBare()) {
+            $data = json_encode(['bare' => true, 'loaded' => true]);
+            return view('gitamic::status', ['wrapper_class' => 'max-w-full', 'data' => $data]);
+        }
+
         $unstaged = $git->getUnstagedFiles();
         $staged = $git->getStagedFiles();
 
@@ -31,17 +37,27 @@ class GitamicApiController
         }
 
         $data['loaded'] = true;
+        $data['bare'] = false;
 
         return view('gitamic::status', ['wrapper_class' => 'max-w-full', 'data' => json_encode($data)]);
     }
 
-    public function actions($type)
+    public function init(): JsonResponse
+    {
+        app()->forgetInstance(SiteRepository::class);
+        $result = shell_exec('cd ../ && git init');
+        $git = app(SiteRepository::class);
+        $success = $result && ! $git->repo()->isBare();
+        return response()->json(['success' => $success]);
+    }
+
+    public function actions($type): JsonResponse
     {
         $method = Str::camel("get_{$type}_actions");
         return response()->json($this->{$method}());
     }
 
-    public function doAction(SiteRepository $git, $type)
+    public function doAction(SiteRepository $git, $type): JsonResponse
     {
         $action = request()->input('action');
         $selections = request()->input('selections');
@@ -53,28 +69,28 @@ class GitamicApiController
         return response()->json(['action' => $git->{$action}($files->all())]);
     }
 
-    public function commit(SiteRepository $git)
+    public function commit(SiteRepository $git): JsonResponse
     {
         $result = $git->commit(request()->input('commit_message'));
 
         return response()->json(['result' => $result]);
     }
 
-    public function push(SiteRepository $git)
+    public function push(SiteRepository $git): JsonResponse
     {
         $result = $git->push();
 
         return response()->json(['result' => $result]);
     }
 
-    public function pull(SiteRepository $git)
+    public function pull(SiteRepository $git): JsonResponse
     {
         $result = $git->pull();
 
         return response()->json(['result' => $result]);
     }
 
-    protected function getUnstagedActions()
+    protected function getUnstagedActions(): array
     {
         return [
             [
@@ -95,7 +111,7 @@ class GitamicApiController
         ];
     }
 
-    protected function getStagedActions()
+    protected function getStagedActions(): array
     {
         return [
             [
