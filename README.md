@@ -88,7 +88,7 @@ of the add-on's installation):
 php artisan vendor:publish --provider=SimonHamp\\Gitamic\\ServiceProvider
 ```
 
-Or you can edit it in the `Gitamic` > `Settings` screen!
+Or you can edit it in **Gitamic > Settings**!
 
 #### Statamic Pro
 Gitamic **does not** require Statamic Pro, nor [Statamic's Git Integration](https://statamic.dev/git-integration) to be
