@@ -5,12 +5,13 @@ namespace SimonHamp\Gitamic;
 use Error;
 use Exception;
 use ErrorException;
-use Illuminate\Support\Str;
-use InvalidArgumentException;
 use Statamic\Entries\Entry;
+use Illuminate\Support\Str;
 use Statamic\Facades\Stache;
+use InvalidArgumentException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
 use Gitonomy\Git\Diff\File as GitFile;
@@ -85,6 +86,8 @@ class Repository implements Contracts\SiteRepository
 
             return collect(preg_split("/((\r?\n)|(\r\n?))/", $branches))
                 ->transform(function ($branch) {
+                    Log::debug($branch);
+                    
                     // Parse the branch data for the different parts
                     preg_match('/^[\s|\*]\s(?<name>.*?)\s+(?<commit>[0-9A-f]{7})\s\[?(?(?<=\[)(?<tracking>.*?)|.*)\]?\s/', $branch, $matches);
 
