@@ -2,13 +2,10 @@
 
 namespace SimonHamp\Gitamic\Contracts;
 
-use Gitonomy\Git\Repository;
 use Illuminate\Support\Collection;
 
 interface SiteRepository
 {
-    public function repo(): Repository;
-
     public function getFilesOfType($type): Collection;
 
     public function getUnstagedFiles(): Collection;
@@ -18,8 +15,6 @@ interface SiteRepository
     public function getStagedFiles(): Collection;
 
     public function getPendingFiles(): Collection;
-
-    public function currentBranch(): array;
 
     public function stage($files, $args = []): string;
 
@@ -44,4 +39,6 @@ interface SiteRepository
     public function diverged(): bool;
 
     public function status(): string;
+
+    public function getDiff($filename);
 }

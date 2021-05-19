@@ -3,21 +3,14 @@
 namespace SimonHamp\Gitamic\Http\Controllers;
 
 use Illuminate\Support\Str;
-use Illuminate\Http\JsonResponse;
 use SimonHamp\Gitamic\Contracts\SiteRepository;
 
 class GitamicApiController
 {
     public function status(SiteRepository $git)
     {
-        if ($git->repo()->isBare()) {
-            $data = json_encode(['bare' => true, 'loaded' => true]);
-            return view('gitamic::status', ['wrapper_class' => 'max-w-full', 'data' => $data]);
-        }
-
         $unstaged = $git->getUnstagedFiles();
         $staged = $git->getStagedFiles();
-
         $data = [
             'unstaged' => $unstaged->all(),
             'staged' => $staged->all(),
@@ -30,7 +23,6 @@ class GitamicApiController
             'behind' => $git->behind(),
             'diverged' => $git->diverged(),
             'status' => $git->status(),
-            'current_branch' => $git->currentBranch(),
         ];
 
         if (request()->wantsJson()) {
@@ -38,60 +30,56 @@ class GitamicApiController
         }
 
         $data['loaded'] = true;
-        $data['bare'] = false;
 
         return view('gitamic::status', ['wrapper_class' => 'max-w-full', 'data' => json_encode($data)]);
     }
 
-    public function init(): JsonResponse
-    {
-        app()->forgetInstance(SiteRepository::class);
-        $result = shell_exec('cd ../ && git init');
-        $git = app(SiteRepository::class);
-        $success = $result && ! $git->repo()->isBare();
-        return response()->json(['success' => $success]);
-    }
-
-    public function actions($type): JsonResponse
+    public function actions($type)
     {
         $method = Str::camel("get_{$type}_actions");
         return response()->json($this->{$method}());
     }
 
-    public function doAction(SiteRepository $git, $type): JsonResponse
+    public function doAction(SiteRepository $git, $type)
     {
         $action = request()->input('action');
         $selections = request()->input('selections');
 
-        $files = $git->getFilesOfType($type)->only($selections)->map(function ($file) {
-            return $file->get('path');
-        });
+        $files_obj = $git->getFilesOfType($type);
+        $files = [];
+        foreach ($files_obj as $f) {
+            if (isset($f['id']) &&
+                isset($f['path']) &&
+                in_array($f['id'], $selections)) {
+                array_push($files, $f['path']);
+            }
+        }
 
-        return response()->json(['action' => $git->{$action}($files->all())]);
+        return response()->json(['action' => $git->{$action}($files)]);
     }
 
-    public function commit(SiteRepository $git): JsonResponse
+    public function commit(SiteRepository $git)
     {
         $result = $git->commit(request()->input('commit_message'));
 
         return response()->json(['result' => $result]);
     }
 
-    public function push(SiteRepository $git): JsonResponse
+    public function push(SiteRepository $git)
     {
         $result = $git->push();
 
         return response()->json(['result' => $result]);
     }
 
-    public function pull(SiteRepository $git): JsonResponse
+    public function pull(SiteRepository $git)
     {
         $result = $git->pull();
 
         return response()->json(['result' => $result]);
     }
 
-    protected function getUnstagedActions(): array
+    protected function getUnstagedActions()
     {
         return [
             [
@@ -112,7 +100,7 @@ class GitamicApiController
         ];
     }
 
-    protected function getStagedActions(): array
+    protected function getStagedActions()
     {
         return [
             [
@@ -122,5 +110,12 @@ class GitamicApiController
                 'fields' => ['path'],
             ],
         ];
+    }
+
+    public function getDiff(SiteRepository $git)
+    {
+        $filename = request()->input('filename');
+        $diff = $git->getDiff($filename);
+        return response()->json(['result' => $diff]);
     }
 }

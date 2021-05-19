@@ -3,37 +3,32 @@
 namespace SimonHamp\Gitamic;
 
 use Error;
-use Exception;
 use ErrorException;
-use Statamic\Entries\Entry;
-use Illuminate\Support\Str;
-use Statamic\Facades\Stache;
-use InvalidArgumentException;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Cache;
+use Exception;
 use Gitonomy\Git\Diff\File as GitFile;
 use Gitonomy\Git\Exception\ProcessException;
-use Gitonomy\Git\Repository as GitRepository;
+// use Gitonomy\Git\Repository as GitRepository;
+use Gitonomy\Git\Repository as GitonomyRepository;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+use Statamic\Entries\Entry;
+use Statamic\Facades\Stache;
+use Statamic\Facades\User;
 
 class Repository implements Contracts\SiteRepository
 {
-    protected GitRepository $repo;
+    protected $repo;
 
     const STATUS_BEHIND = 'Your branch is behind';
     const STATUS_AHEAD = 'Your branch is ahead';
     const STATUS_DIVERGED = 'have diverged';
 
-    public function __construct(GitRepository $repo)
+    public function __construct(GitonomyRepository $repo)
     {
         $this->repo = $repo;
-    }
-
-    public function repo(): GitRepository
-    {
-        return $this->repo;
     }
 
     public function getFilesOfType($type): Collection
@@ -45,60 +40,31 @@ class Repository implements Contracts\SiteRepository
 
     public function getUnstagedFiles(): Collection
     {
-        return $this->getUntrackedFiles()->merge($this->getPendingFiles())->keyBy('id');
+        return $this->checkFileUser($this->getUntrackedFiles()->merge($this->getPendingFiles())->keyBy('id'));
     }
 
     public function getUntrackedFiles(): Collection
     {
-        return collect($this->repo->getWorkingCopy()->getUntrackedFiles())
-            ->transform(function ($relative_path, $id) {
-                return $this->getFileDetails($relative_path, $id);
-            });
+        return $this->checkFileUser(collect($this->repo->getWorkingCopy()->getUntrackedFiles())
+                ->transform(function ($relative_path, $id) {
+                    return $this->getFileDetails($relative_path, $id);
+                }));
     }
 
     public function getStagedFiles(): Collection
     {
-        return collect($this->repo->getWorkingCopy()->getDiffStaged()->getFiles())
-            ->transform(function (GitFile $file, $id) {
-                return $this->getFileDetails($file, $id);
-            });
+        return $this->checkFileUser(collect($this->repo->getWorkingCopy()->getDiffStaged()->getFiles())
+                ->transform(function (GitFile $file, $id) {
+                    return $this->getFileDetails($file->getName(), $id);
+                }));
     }
 
     public function getPendingFiles(): Collection
     {
-        return collect($this->repo->getWorkingCopy()->getDiffPending()->getFiles())
-            ->transform(function (GitFile $file, $id) {
-                return $this->getFileDetails($file, $id);
-            });
-    }
-
-    public function currentBranch(): array
-    {
-        return $this->branches()->where('current')->first();
-    }
-
-    public function branches(): Collection
-    {
-        return Cache::remember('gitamic.branches', config('gitamic.cache.ttl'), function() {
-            $args = ['-vv'];
-
-            $branches = trim($this->repo->run('branch', $args));
-
-            return collect(preg_split("/((\r?\n)|(\r\n?))/", $branches))
-                ->transform(function ($branch) {
-                    Log::debug($branch);
-                    
-                    // Parse the branch data for the different parts
-                    preg_match('/^[\s|\*]\s(?<name>.*?)\s+(?<commit>[0-9A-f]{7})\s\[?(?(?<=\[)(?<tracking>.*?)|.*)\]?\s/', $branch, $matches);
-
-                    return [
-                        'current' => Str::startsWith($branch, '*'),
-                        'name' => $matches['name'],
-                        'tracking' => $matches['tracking'] ?? 'not tracking',
-                        'commit' => $matches['commit'],
-                    ];
-                });
-        });
+        return $this->checkFileUser(collect($this->repo->getWorkingCopy()->getDiffPending()->getFiles())
+                ->transform(function (GitFile $file, $id) {
+                    return $this->getFileDetails($file->getName(), $id);
+                }));
     }
 
     public function stage($files, $args = []): string
@@ -110,9 +76,8 @@ class Repository implements Contracts\SiteRepository
 
     public function unstage($files, $args = []): string
     {
-        $args = array_merge(array_values($files), array_values($args), ['--staged']);
-
-        return $this->repo->run('restore', $args);
+        $args = array_merge(["--"], array_values($files));
+        return $this->repo->run('reset', $args);
     }
 
     public function discard($files): string
@@ -130,7 +95,7 @@ class Repository implements Contracts\SiteRepository
             }
 
             // XXX: This is gonna be real slow for large sets
-            $in_index = ! Str::startsWith($result, 'error:');
+            $in_index = !Str::startsWith($result, 'error:');
             if ($in_index) {
                 continue;
             }
@@ -167,7 +132,6 @@ class Repository implements Contracts\SiteRepository
     public function pull(): string
     {
         Cache::forget('gitamic.status');
-        Cache::forget('gitamic.branches');
 
         return $this->repo->run('pull');
     }
@@ -176,8 +140,8 @@ class Repository implements Contracts\SiteRepository
     {
         $status = $this->status();
 
-        return ! Str::contains($status, self::STATUS_BEHIND)
-            && ! Str::contains($status, self::STATUS_AHEAD);
+        return !Str::contains($status, self::STATUS_BEHIND)
+        && !Str::contains($status, self::STATUS_AHEAD);
     }
 
     public function ahead(): bool
@@ -197,14 +161,14 @@ class Repository implements Contracts\SiteRepository
 
     public function status(): string
     {
-        return Cache::remember('gitamic.status', config('gitamic.cache.ttl'), function() {
+        return Cache::remember('gitamic.status', 60, function () {
             $this->fetchAll();
 
             $status = $this->repo->run('status');
 
             $status_array = preg_split("/((\r?\n)|(\r\n?))/", $status);
 
-            return implode("\r\n", array_slice($status_array, 1, 2));
+            return implode("\r\n", array_slice($status_array, 0, 2));
         });
     }
 
@@ -213,45 +177,17 @@ class Repository implements Contracts\SiteRepository
         $this->repo->run('fetch', ['--all']);
     }
 
-    protected function determineChangeType(GitFile $file): string
+    protected function getFileDetails(string $relative_path, $id): Collection
     {
-        // XXX: Would this be better as a match (PHP8)?
-        switch (true) {
-            case $file->isChangeMode():
-                return 'F';
-            case $file->isCreation():
-                return 'A';
-            case $file->isDeletion():
-                return 'D';
-            case $file->isModification():
-                return 'M';
-            case $file->isRename():
-                return 'R';
-        }
-
-        return '-';
-    }
-
-    protected function getFileDetails($file, $id): Collection
-    {
-        $change = 'A';
-        $relative_path = $file;
-
-        if ($file instanceof GitFile) {
-            $relative_path = $file->getName();
-            $change = $this->determineChangeType($file);
-        } else if (! is_string($file)) {
-            throw new InvalidArgumentException('$file must a string or an instance of ' . GitFile::class);
-        }
 
         $path = base_path($relative_path);
-        $is_deleted = ! File::exists($path);
+        $is_deleted = !File::exists($path);
         $file = File::name($path);
         $extension = '.' . File::extension($path);
         $last_modified = $is_deleted ? 'unknown' : Carbon::createFromTimestamp(File::lastModified($path))->format('Y-m-d H:i:s');
         $type = $is_deleted ? 'unknown' : File::type($path);
         $size = $is_deleted ? 'unknown' : File::size($path);
-        $is_content = ! empty($file) && Str::startsWith($path, app('filesystems.paths.content'));
+        $is_content = empty($file) ? false : Str::startsWith($path, app('filesystems.paths.content'));
         $entry_path = Str::replaceFirst('content' . DIRECTORY_SEPARATOR, '', $relative_path);
 
         // Replace taxonomy term path with the real deal
@@ -269,7 +205,7 @@ class Repository implements Contracts\SiteRepository
         $is_entry = false;
         try {
             /** @var Entry $entry */
-            $entry = Stache::store("entries::{$collection}")->makeItemFromFile($path, File::get($path));
+            $entry = Stache::store("entries::$collection")->makeItemFromFile($path, File::get($path));
             $is_entry = true;
             $edit_url = $entry->editUrl();
         } catch (Exception | ErrorException | Error $e) {
@@ -278,7 +214,50 @@ class Repository implements Contracts\SiteRepository
 
         return collect(compact(
             'id', 'relative_path', 'path', 'last_modified', 'type', 'size', 'is_content', 'is_entry', 'edit_url',
-            'is_deleted', 'change',
+            'is_deleted'
         ));
+    }
+
+    public function getDiff($filename)
+    {
+        $current_branch = $this->repo->run("rev-parse", ["--abbrev-ref", "HEAD"]) ?? "dev";
+        $full_diff_splitted = explode("diff --git a/", $this->repo->getDiff(trim($current_branch))->getRawDiff());
+        foreach ($full_diff_splitted as $diff) {
+            if (str_contains($diff, $filename)) {
+                return "diff --git a/" . $diff;
+            }
+        }
+
+        return "";
+    }
+
+    private function checkFileUser($files)
+    {
+        $current_user_id = User::current()->id();
+        $filtered_files = new Collection();
+
+        foreach ($files as $file) {
+            //Only show files, which current user did not modified
+            if (!(strpos($file['relative_path'], ".md") === false)) {
+                $contents = file_get_contents($file['path']);
+                preg_match('/updated_by:(.*)\n/', $contents, $updated_by_matches);
+
+                if (sizeof($updated_by_matches) > 1) {
+                    $file_user_id = trim($updated_by_matches[1]);
+                    if ($current_user_id == $file_user_id) {
+                        continue;
+                    }
+                }
+
+                // preg_match('/title:(.*)\n/', $contents, $title_matches);
+                // if (sizeof($title_matches) > 1) {
+                //     $file_title = trim($title_matches[1]);
+                //     $file['title'] = $file_title;
+                // }
+		 $filtered_files->add($file);           
+ }
+                }
+
+        return $filtered_files;
     }
 }

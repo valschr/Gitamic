@@ -19,7 +19,7 @@
         <div class="flex mb-3">
             <h1 class="flex-1">{{ __('Gitamic') }}</h1>
 
-            <button class="btn" @click.prevent="getStatus(true)" v-if="! bare">{{ __('Refresh') }}</button>
+            <button class="btn" @click.prevent="getStatus(true)">{{ __('Refresh') }}</button>
 
             <button
                 v-if="hasStagedChanges"
@@ -49,34 +49,10 @@
             <loading-graphic  />
         </div>
 
-        <div v-if="loaded && bare" class="card relative">
-            <p class="mb-2">Your repo hasn't been initialized. Please initialize it before using Gitamic:</p>
-
-            <div class="flex justify-center my-4">
-                <button class="btn-primary" @click.prevent="initRepo()">{{ __('Initialize repo') }}</button>
-            </div>
-
-            <p class="my-2">Alternatively, you can do so manually from your command line:</p>
-
-            <div class="bg-grey-30 py-2 px-3">
-                <kbd>
-                    git init
-                </kbd>
-            </div>
-        </div>
-
-        <div v-if="loaded && ! bare">
+        <div v-if="loaded">
             <div class="my-4">
                 <h2 class="mb-2">Status</h2>
-
-                <div class="card">
-                    <p>
-                        Current branch: <code>{{ current_branch.name }}</code>
-                        &rarr;
-                        <code>{{ current_branch.tracking }}</code>
-                    </p>
-                    <p>{{ status }}</p>
-                </div>
+                <pre>{{ status }}</pre>
             </div>
 
             <div class="my-4">
@@ -87,19 +63,6 @@
             <div class="my-4">
                 <h2 class="mb-2">Unstaged</h2>
                 <gitamic-unstaged ref="unstaged" :data="unstaged"></gitamic-unstaged>
-            </div>
-
-            <div class="flex justify-center text-center mt-4">
-                <div class="bg-white rounded-full px-3 py-1 shadow-sm text-sm text-grey-70">
-                    Something not working?
-                    <a href="https://github.com/simonhamp/Gitamic/issues/new/choose" target="_blank" class="text-blue hover:text-blue-dark">
-                        Get help
-                    </a>
-                </div>
-            </div>
-
-            <div class="my-4 text-sm text-center text-grey-60 tracking-wide" style="font-variant: all-small-caps">
-                Gitamic &copy; <a href="https://simonhamp.me/" target="_blank">Simon Hamp</a>
             </div>
         </div>
     </div>
@@ -114,7 +77,6 @@
 
         data() {
             return {
-                bare: false,
                 loaded: false,
                 confirming: false,
                 unstaged: [],
@@ -126,7 +88,6 @@
                 behind: false,
                 diverged: false,
                 status: '',
-                current_branch: null,
             }
         },
 
@@ -145,7 +106,7 @@
         },
 
         created() {
-            for (const [key, value] of Object.entries(this.$props.data)) {
+            for(const [key, value] of Object.entries(this.$props.data)) {
                 this[key] = value;
             }
 
@@ -162,11 +123,15 @@
 
                 let response = await this.$axios.get(cp_url(`gitamic/api/status`));
 
-                for (const [key, value] of Object.entries(response.data)) {
-                    this[key] = value;
-                }
-
                 this.loaded = true;
+                this.unstaged = response.data.unstaged;
+                this.staged = response.data.staged;
+                this.meta = response.data.meta;
+                this.up_to_date = response.data.up_to_date;
+                this.ahead = response.data.ahead;
+                this.behind = response.data.behind;
+                this.diverged = response.data.diverged;
+                this.status = response.data.status;
             },
 
             confirmCommit() {
@@ -202,20 +167,6 @@
                 await this.getStatus();
                 this.loaded = true;
             },
-
-            async initRepo() {
-                this.loaded = false;
-                let response = await this.$axios.post(cp_url(`gitamic/api/init`));
-
-                if (response.status === 200) {
-                    this.$toast.success('Repo initialized. Loading status...');
-                    await this.getStatus();
-                } else {
-                    this.$toast.error('Failed to initialize. Check your logs. Try initializing manually');
-                }
-
-                this.loaded = true;
-            }
         }
     }
 </script>

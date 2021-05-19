@@ -2,25 +2,20 @@
 
 namespace SimonHamp\Gitamic;
 
-use Edalzell\Forma\Forma;
-use Statamic\Facades\User;
-use Statamic\Facades\CP\Nav;
-use Statamic\Providers\AddonServiceProvider;
 use Gitonomy\Git\Repository as GitRepository;
 use SimonHamp\Gitamic\Contracts\SiteRepository;
+use Statamic\Facades\CP\Nav;
+use Statamic\Facades\User;
+use Statamic\Providers\AddonServiceProvider;
 
 class ServiceProvider extends AddonServiceProvider
 {
     protected $scripts = [
-        __DIR__.'/../resources/dist/js/cp.js'
-    ];
-
-    protected $stylesheets = [
-        __DIR__.'/../resources/dist/css/cp.css'
+        __DIR__ . '/../resources/dist/js/cp.js',
     ];
 
     protected $routes = [
-        'cp' => __DIR__.'/../routes/cp.php',
+        'cp' => __DIR__ . '/../routes/cp.php',
     ];
 
     public function register()
@@ -30,12 +25,11 @@ class ServiceProvider extends AddonServiceProvider
         });
 
         app()->singleton(GitRepository::class, function () {
+
             $user = User::current();
 
-            $authenticated = config('gitamic.use_authenticated');
-
-            $name = $authenticated ? $user->name() : config('gitamic.user.name');
-            $email = $authenticated ? $user->email() : config('gitamic.user.email');
+            $name = $user->name() ?? config('gitamic.user.name');
+            $email = $user->email() ?? config('gitamic.user.email');
 
             return new GitRepository(base_path(), [
                 'environment_variables' => [
@@ -52,15 +46,13 @@ class ServiceProvider extends AddonServiceProvider
     {
         parent::boot();
 
-        Forma::add('simonhamp/gitamic');
-
         Nav::extend(function ($nav) {
-            $nav->tools('Gitamic')
-                ->route('gitamic.status')
-                ->icon('git')
-                ->children([
-                    'Settings' => cp_route('gitamic.config.edit'),
-                ]);
+            $user = User::current();
+            if ($user->isSuper() || $user->hasRole('approver')) {
+                $nav->tools('Gitamic')
+                    ->route('gitamic.status')
+                    ->icon('git');
+            }
         });
     }
 }
